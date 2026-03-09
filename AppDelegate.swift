@@ -126,7 +126,7 @@ class WebViewController: UIViewController, WKNavigationDelegate {
     
     private func loadServer() {
         // Update this to your server URL
-        let urlString = "http://localhost:3000"
+        let urlString = "https://ipa-api-server.vercel.app"
         
         if let url = URL(string: urlString) {
             let request = URLRequest(url: url)

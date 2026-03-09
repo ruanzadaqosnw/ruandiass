@@ -18,31 +18,19 @@ jobs:
     - name: Select Xcode version
       run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
     
-    - name: Create Xcode project
-      run: |
-        mkdir -p IPAAPIServer
-        cd IPAAPIServer
-        
-        # Create project structure
-        mkdir -p IPAAPIServer/{Supporting\ Files,Resources}
-        
-        # Copy Swift files
-        cp ../AppDelegate.swift IPAAPIServer/
-        
-        # Create xcodeproj
-        xcodebuild -version
-    
     - name: Build Archive
       run: |
         xcodebuild archive \
+          -project IPAAPIServer.xcodeproj \
           -scheme IPAAPIServer \
           -archivePath build/IPAAPIServer.xcarchive \
           -configuration Release \
-          -derivedDataPath build/DerivedData \
-          -allowProvisioningUpdates \
-          CODE_SIGN_IDENTITY="" \
+          -sdk iphoneos \
+          CODE_SIGNING_ALLOWED=NO \
           CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGN_IDENTITY="" \
           CODE_SIGN_ENTITLEMENTS="" \
+          GCC_PREPROCESSOR_DEFINITIONS='$inherited' \
           2>&1 | tee build.log
     
     - name: Export IPA (Unsigned)
@@ -63,21 +51,22 @@ jobs:
             <true/>
             <key>teamID</key>
             <string></string>
+            <key>compileBitcode</key>
+            <false/>
         </dict>
         </plist>
         EOF
         
-        xcodebuild -exportArchive \
-          -archivePath build/IPAAPIServer.xcarchive \
-          -exportOptionsPlist build/ExportOptions/ExportOptions.plist \
-          -exportPath build/IPA \
-          2>&1 | tee export.log
+        # Manual IPA creation since xcodebuild -exportArchive requires signing
+        mkdir -p build/IPA/Payload
+        cp -R build/IPAAPIServer.xcarchive/Products/Applications/IPAAPIServer.app build/IPA/Payload/
+        cd build/IPA
+        zip -r IPAAPIServer.ipa Payload
     
     - name: Verify IPA
       run: |
         ls -lh build/IPA/
         file build/IPA/IPAAPIServer.ipa
-        unzip -l build/IPA/IPAAPIServer.ipa | head -20
     
     - name: Upload IPA as artifact
       uses: actions/upload-artifact@v4
@@ -85,11 +74,3 @@ jobs:
         name: IPAAPIServer-unsigned
         path: build/IPA/IPAAPIServer.ipa
         retention-days: 30
-    
-    - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: build/IPA/IPAAPIServer.ipa
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
