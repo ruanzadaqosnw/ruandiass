@@ -117,8 +117,8 @@ class WebViewController: UIViewController, WKNavigationDelegate {
         loadingView?.color = UIColor(red: 0.4, green: 0.2, blue: 1.0, alpha: 1.0)
         view.addSubview(loadingView!)
         
-        // Observe loading progress
-        webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
+        // Observe loading progress - Corrected as per user instructions
+        webView.addObserver(self, forKeyPath: "estimatedProgress", options: .new, context: nil)
         
         // Load server
         loadServer()
@@ -137,15 +137,15 @@ class WebViewController: UIViewController, WKNavigationDelegate {
         }
     }
     
-    // MARK: - Progress Observation
+    // MARK: - Progress Observation - Corrected with @objc and string keyPath
     
-    override func observeValue(
+    @objc override func observeValue(
         forKeyPath keyPath: String?,
         of object: Any?,
         change: [NSKeyValueChangeKey : Any]?,
         context: UnsafeMutableRawPointer?
     ) {
-        if keyPath == #keyPath(WKWebView.estimatedProgress) {
+        if keyPath == "estimatedProgress" {
             progressView?.progress = Float(webView.estimatedProgress)
             
             if webView.estimatedProgress >= 1.0 {
@@ -159,7 +159,9 @@ class WebViewController: UIViewController, WKNavigationDelegate {
     }
     
     deinit {
-        webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
+        if webView != nil {
+            webView.removeObserver(self, forKeyPath: "estimatedProgress")
+        }
     }
     
     // MARK: - Navigation Delegate
